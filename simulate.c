@@ -12,6 +12,7 @@ int n;
 
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
+//function for printing board
 void printboard(int** board){
 	printf("\n");
 	for (int i=0; i<m;i++){
@@ -22,6 +23,7 @@ void printboard(int** board){
 	}
 }
 
+// frees dynamically allocated board (**int)
 void freeboard(int** b){
 	for (int i = 0; i<m; i++)
 		free(b[i]);
@@ -30,7 +32,8 @@ void freeboard(int** b){
 
 /* inputs: board, total rows, total columns, possible new row (r) and column index (c)
  * effect: checks if the proposed position is valid
- * output: boolean
+ * output: int: 1 if valid move, 0 if not. 
+ 					 based on if the move in question has already been visited and if it is out of bounds
  */
 int isValid(int** board, int r, int c){
 	if (r<0 || r>=m) return 0;
@@ -67,13 +70,19 @@ int* check_moves(int** board, int r, int c){
 	return moves;
 }
 
+/* struct definition for the NextMove
+ * int** board: 2d array which stores which locations has been visited with a 1
+ * move_num: the nth move for this pathway (can also be calculated by counting number of 1s on the board + 1)
+ * r: row index, c: column index
+ * id: Thread Id (thread id where the first thread created has id=1, second has id=2 etc.)
+ */
 typedef struct NextMove{
 	int** board;
 	unsigned int move_num;
 	int r, c, id;
 } NextMove;
 
-//copy function for boards
+//copy function for board to pass on info to next step (see loadNext())
 int** cpyboard(int** prev){
 	int** new_board = calloc(m, sizeof(int*));
   for(int i = 0; i<m; i++){
@@ -88,9 +97,10 @@ int** cpyboard(int** prev){
 	return new_board;
 }
 
-/* Effect: returns a struct with attributes filled
+/* 
  * Inputs: ith position of moves array (which indicates if that move is valid *see check moves for move array)
- * Output: filled out struct
+ * Effect: returns a NextMove struct that has the members of the next move filled. (position of next move etc.)
+ * Output: filled out struct (see NextMove struct)
  */
 NextMove* loadNext(int i, int** board, int in_r, int in_c, int current_move_num, int id){
 	NextMove* Next_Pos = (NextMove*)calloc(1, sizeof(NextMove));
@@ -137,24 +147,27 @@ NextMove* loadNext(int i, int** board, int in_r, int in_c, int current_move_num,
 	return Next_Pos;
 }
 
-/* Driver function to explore -
- * 	search_t is a recursive function that also utilizes threads
- * Effects:
- * Input: 
- * Output: 
+/* search_t is a recursive function that also utilizes multithreading
+ * Effects: 
+ * 		1. checks list of available moves
+ * 		2. if no moves, end thread
+ 				 if multiple moves, call pthread_create() with the search function
+ 				 		as the thread function (recursive thread call)
+ * 		3. if 1 move, call search_t() with the next move. 
+ * Input: NextMove Struct (defined above)
+ * Output: int : could be thread id or 0
  */
 void* search_t( void* arg){
 	
 	int rc;
+	//cast void* input (becuase this function is used for threading) to NextMove struct
 	NextMove Pos = *(NextMove *) arg;
 
-	#ifdef DEBUG
-		printf("starting new search call\n");
-	#endif
+	//check how many moves this postion has
 	int* moves = check_moves(Pos.board, Pos.r, Pos.c);
 	Pos.board[Pos.r][Pos.c] = 1;
 
-	//set name
+	//This name variable is used for printing purposes. (changes depending on which thread is printing)
 	char* name;
 	if (Pos.id==0){
 		name = "MAIN";
@@ -165,6 +178,7 @@ void* search_t( void* arg){
 		name = strcat(temp2, temp);
 	}
 
+	//print board AND moves array for visual
 	#ifdef DEBUG
 		printboard(Pos.board);
 		for (int i = 0; i<9; i++){
@@ -173,12 +187,11 @@ void* search_t( void* arg){
 		printf("\n%d\n", moves[8]);
 	#endif
 
-	//if no more moves
+	//if no more moves condition
 	if (moves[8] == 0){
-		#ifdef DEBUG
-			printf("starting no moves left call\n");
-		#endif
-		//mutex lock for global comparison
+
+		//if this path visited the most squares. update. if this path is a full tour, update. 
+		//locks the variable for this thread only (blocked in other threads when locked)
 		pthread_mutex_lock(&mutex);
 		int update = Pos.move_num>max_squares;
 		if (update) max_squares = Pos.move_num;
@@ -197,6 +210,7 @@ void* search_t( void* arg){
 		free(moves);
 		freeboard(((NextMove*)arg)->board);
 		free(arg);
+
 		if (Pos.id != 0){
 			unsigned int * y = malloc( sizeof( unsigned int ) );
 		  *y = pthread_self();
@@ -204,26 +218,25 @@ void* search_t( void* arg){
 		}
 	}
 
-	//multiple moves possible
+	//if multiple moves possible, we want to start a thread for each possible move
 	else if (moves[8] > 1){
 
 		printf("%s: %d possible moves after move #%d; creating %d child threads...\n", name, moves[8], Pos.move_num, moves[8]);
 		
 		//create an array of tids 
 		pthread_t tid[moves[8]];
+		//this is a counter friendly for the user to see what # the created thread is. Ex. thread 1, thread 2 etc. Instead of using thread ids.  
 		int tid_count[moves[8]];
+
+		//ttracker is used for counting the number of join calls to make. 
 		int ttracker = 0;
 
-		#ifdef DEBUG
-			printf("if more than 1 possible path:\n");
-		#endif
-
+		//loops through moves array to find which move is valid
 		for (int i = 0; i<8; i++){
-			
 			if (moves[i] == 0) continue;
 
 			#ifdef DEBUG
-			printf("start of thread creation loop, loop num: %d\n", i);
+				printf("start of thread creation loop of thread \"%s\", loop num: %d\n", name, i);
 			#endif
 
 			NextMove* next_place;
@@ -243,8 +256,7 @@ void* search_t( void* arg){
 	      exit(1);
 	    }
 
-
-
+	    //if parallel, join right after each thread finishes (no parallel processing)
 	    #ifdef NO_PARALLEL
 	    	unsigned int * x;	    	
 			  rc = pthread_join( tid[ttracker], (void**)&x);
@@ -257,22 +269,20 @@ void* search_t( void* arg){
 			  	#ifdef DEBUG
 			  	printf("no parallel branch ttracker: %d, value: %d\n", ttracker, tid_count[ttracker]);
 			  	#endif
+
 			 		printf( "%s: T%d joined\n", name, tid_count[ttracker]);
+			 		free(x);
 				}
-				
 	    #endif
+
 			ttracker++;
-			#ifdef DEBUG
-				printf("end of else if\n");
-			#endif
 		}
+
+		//if multithreading is enabled, loop through the total number of threads and join. 
 		#ifndef NO_PARALLEL
-			//join threads here
 			for (int i = 0; i<ttracker; i++){
 				unsigned int * x;
-				// printf("%ld", tid[i]);
 				rc = pthread_join( tid[i], (void**)&x);
-
 			  if ( rc != 0 )
 			  {
 					fprintf( stderr, "%s: Could not join thread (%d)\n", name, rc );
@@ -284,40 +294,50 @@ void* search_t( void* arg){
 				}
 			}
 		#endif
+
 		freeboard(((NextMove*)arg)->board);
 		free(arg);
 		free(moves);
 	}
-	// only 1 move possible
+
+	// if only 1 move possible, then there is no threading, we continue this thread with recursive call. 
 	else{
-		#ifdef DEBUG
-			printf("1 move possible\n");
-		#endif
-		//copy moves to static array
+
+		// copy moves array to allow the current moves pointer 
+		// to be freed for next recursive call to use.
 		int moves_cpy[9];
 		for (int i = 0; i<9; i++){
 			moves_cpy[i] = moves[i];
 		}
 		free(moves);
+
+		//loop over moves to find the one valid moves
 		for (int i = 0; i<8; i++){
 			if (moves_cpy[i] == 1){
 				NextMove* next_place;
 				//load info into the next place struct
 				next_place = loadNext(i, Pos.board, Pos.r, Pos.c, Pos.move_num, Pos.id);
+		 		
+				//free before calling next process to avoid corruption
 		 		freeboard(((NextMove*)arg)->board);
 				free(arg);
+
+				//this is a recursive call to same search function at next position.
 				search_t(next_place);
 			}
 		}
 	}
-
-	//never gets here
-	#ifdef DEBUG
-		printf("end of search\n");
-	#endif
 	return 0;
 }
 
+/* Driver Function (called in main):
+ * effects: reads inputs initializes the first move
+ *     			for the first recursive call. (All parameters in NextMove struct)
+ * inputs: m: number of rows
+ 					 n: number of colums
+ 					 r: starting row index
+ 					 c: starting column index
+ */
 int simulate( int argc, char * argv[] ){
 	//initialize input arguments
   m = atoi(argv[1]);

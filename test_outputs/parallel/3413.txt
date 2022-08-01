@@ -1,0 +1,48 @@
+MAIN: Solving Sonny's knight's tour problem for a 3x4 board
+MAIN: Sonny starts at row 1 and column 3 (move #1)
+MAIN: 2 possible moves after move #1; creating 2 child threads...
+T1: 2 possible moves after move #2; creating 2 child threads...
+T2: 2 possible moves after move #2; creating 2 child threads...
+T3: 2 possible moves after move #7; creating 2 child threads...
+T6: 2 possible moves after move #3; creating 2 child threads...
+T5: 2 possible moves after move #3; creating 2 child threads...
+T4: 2 possible moves after move #7; creating 2 child threads...
+T8: 2 possible moves after move #5; creating 2 child threads...
+T9: 2 possible moves after move #5; creating 2 child threads...
+T11: 2 possible moves after move #7; creating 2 child threads...
+T7: Sonny found a full knight's tour; incremented total_tours
+T16: Dead end at move #9
+T13: 2 possible moves after move #7; creating 2 child threads...
+T10: Sonny found a full knight's tour; incremented total_tours
+T12: Sonny found a full knight's tour; incremented total_tours
+T20: Dead end at move #8
+T18: Dead end at move #8
+T19: Dead end at move #8
+T17: Dead end at move #11
+T15: Dead end at move #9
+T21: Dead end at move #11
+T14: Sonny found a full knight's tour; incremented total_tours
+T22: Dead end at move #8
+T13: T20 joined
+T13: T21 joined
+T9: T16 joined
+T9: T18 joined
+T8: T15 joined
+T8: T19 joined
+T11: T17 joined
+T4: T12 joined
+T11: T22 joined
+T3: T7 joined
+T6: T8 joined
+T5: T9 joined
+T4: T14 joined
+T3: T10 joined
+T6: T11 joined
+T5: T13 joined
+T2: T4 joined
+T2: T6 joined
+T1: T3 joined
+T1: T5 joined
+MAIN: T1 joined
+MAIN: T2 joined
+MAIN: Search complete; found 4 possible paths to achieving a full knight's tour

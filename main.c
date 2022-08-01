@@ -1,4 +1,8 @@
-/* hw3-main.c */
+/* main.c
+ * This program solves the knights tour problem with multithreaded programming. 
+ * It had the option of being compiled with the NO_PARALLEL flag which will 
+ * eliminate parallel processing in the program. 
+ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -22,9 +26,6 @@ int main( int argc, char * argv[] )
   total_tours = 0;
   setvbuf( stdout, NULL, _IONBF, 0 );
   int rc = simulate( argc, argv );
-
-  /* on Submitty, there will be more code here that validates the
-      global variables at this point... */
 
   return rc;
 }
