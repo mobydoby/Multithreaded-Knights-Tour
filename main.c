@@ -1,5 +1,6 @@
 /* main.c
- * This program solves the knights tour problem with multithreaded programming. 
+ * How many ways can a knight reach all the squares on a mxn chess board? 
+ * This program solves the knights tour problem with multithreaded programming.
  * It had the option of being compiled with the NO_PARALLEL flag which will 
  * eliminate parallel processing in the program. 
  */

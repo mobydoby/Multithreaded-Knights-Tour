@@ -1,3 +1,14 @@
+/* simulate.c
+ * 
+ * How many ways can a knight reach all the squares on a mxn chess board, starting on row r and column c? 
+ * 
+ * This program solves the knights tour problem with multithreaded programming.
+ * 
+ * Compile With Parallel Programming: gcc main.c simulate.c -Wall -Werror -Werror
+ * Without Parallel Programming: gcc -D NO_PARALLEL main.c simulate.c -Wall -Werror
+ */
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
